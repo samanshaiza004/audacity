@@ -157,6 +157,9 @@ project( Audacity )
 option( audacity_use_odin_caliber_backend
    "Enable experimental Odin application logic with Caliber transport" OFF )
 
+option( audacity_use_alicorn_snap_ui
+   "Enable the experimental Alicorn Snapping toolbar checkbox" OFF )
+
 if( APPLE )
    # XCode 14 no longer allows building unsigned binaries.
    # So for the XCode 14 `-` is passed as the code sign identity, which stands for

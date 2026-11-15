@@ -13,6 +13,12 @@ message( STATUS "========== Configuring ${TARGET} ==========" )
 set( CMAKE_ENABLE_EXPORTS ON )
 
 add_executable( ${TARGET} )
+if( audacity_use_alicorn_snap_ui )
+   # Add Alicorn's archive first so its Odin runtime satisfies symbols shared
+   # with Caliber before the Caliber archive is scanned by the linker.
+   include( "${topdir}/cmake-proxies/cmake-modules/AlicornSnapUI.cmake" )
+   target_link_libraries( ${TARGET} PRIVATE audacity-alicorn-snap-ui-odin )
+endif()
 if( audacity_use_odin_caliber_backend )
    include( "${topdir}/cmake-proxies/cmake-modules/CaliberSnap.cmake" )
    target_sources( ${TARGET} PRIVATE caliber/ProjectSnapAdapter.cpp caliber/ProjectSnapAdapter.h )
@@ -40,6 +46,17 @@ if( audacity_use_odin_caliber_backend )
       install( FILES "${topdir}/src/caliber/CALIBER-LICENSE-MIT.txt"
          DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/audacity" )
    endif()
+endif()
+
+if( audacity_use_alicorn_snap_ui )
+   target_sources( ${TARGET} PRIVATE
+      toolbars/AlicornSnapControl.cpp
+      toolbars/AlicornSnapControl.h
+   )
+   target_include_directories( ${TARGET} PRIVATE "${topdir}/src/alicorn" "${topdir}/src/toolbars" )
+   target_compile_definitions( ${TARGET} PRIVATE AUDACITY_USE_ALICORN_SNAP_UI=1 )
+   add_dependencies( ${TARGET} audacity-alicorn-snap-ui-odin-build )
+   target_link_libraries( ${TARGET} PRIVATE audacity-alicorn-snap-ui )
 endif()
 add_dependencies( ${TARGET} locale )
 add_dependencies( ${TARGET} nyquist )

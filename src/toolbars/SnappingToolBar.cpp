@@ -36,6 +36,10 @@
 
 #include "ProjectSnap.h"
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+#include "AlicornSnapControl.h"
+#endif
+
 #ifdef AUDACITY_USE_ODIN_CALIBER_BACKEND
 #include "caliber/ProjectSnapAdapter.h"
 #include <wx/log.h>
@@ -252,9 +256,15 @@ SnappingToolBar::SnappingToolBar(AudacityProject& project)
     , mSnappingModeChangedSubscription(ProjectSnap::Get(mProject).Subscribe(
          [this](auto settings)
          {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+            if (mAlicornSnapControl)
+               mAlicornSnapControl->SetChecked(
+                  settings.newSnapMode != SnapMode::SNAP_OFF);
+#else
             if (mSnapModeCheckBox)
                mSnapModeCheckBox->SetValue(
                   settings.newSnapMode != SnapMode::SNAP_OFF);
+#endif
 
             if (mSnapToCombo)
                mSnapToCombo->Enable(settings.newSnapMode != SnapMode::SNAP_OFF);
@@ -307,6 +317,12 @@ void SnappingToolBar::Populate()
 
    auto boxSizer = safenew wxBoxSizer(wxHORIZONTAL);
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   mAlicornSnapControl = safenew AlicornSnapControl(this);
+   mAlicornSnapControl->SetName(SnapLabel.Stripped().Translation());
+   mAlicornSnapControl->SetChangeHandler([this](bool) { OnSnapModeChanged(); });
+   boxSizer->Add(mAlicornSnapControl, 0, wxEXPAND, 0);
+#else
    mSnapModeCheckBox = safenew wxCheckBox(this, wxID_ANY, {});
 
    mSnapModeCheckBox->SetName(SnapLabel.Stripped().Translation());
@@ -320,13 +336,14 @@ void SnappingToolBar::Populate()
 
    boxSizer->Add(mSnapModeCheckBox, 0, wxEXPAND, 0);
    boxSizer->Add(snapLabelCtrl, 0, wxEXPAND, 0);
+#endif
 
    sizer->Add(boxSizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND, 5);
 
    const bool snapEnabled =
       ProjectSnap::Get(mProject).GetSnapMode() != SnapMode::SNAP_OFF;
 
-   mSnapModeCheckBox->SetValue(snapEnabled);
+   SetSnapModeEnabled(snapEnabled);
 
 
    mSnapToCombo = safenew wxComboCtrl(
@@ -349,6 +366,7 @@ void SnappingToolBar::Populate()
 
    sizer->Add(mSnapToCombo, 1, wxRIGHT | wxEXPAND, 5);
 
+#ifndef AUDACITY_USE_ALICORN_SNAP_UI
    mSnapModeCheckBox->Bind(
       wxEVT_CHECKBOX, [this](auto&) { OnSnapModeChanged(); });
 
@@ -389,6 +407,7 @@ void SnappingToolBar::Populate()
          mSnapModeCheckBox->SetValue(!mSnapModeCheckBox->GetValue());
          OnSnapModeChanged();
       });
+#endif
 
    RegenerateTooltips();
    Fit();
@@ -425,11 +444,23 @@ void SnappingToolBar::OnSnapModeChanged()
    // Observers run synchronously and may close the toolbar or project. Keep
    // the project alive and use weak window references after the call.
    auto project = mProject.shared_from_this();
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   auto snapControl = mAlicornSnapControl;
+#else
    auto checkBox = mSnapModeCheckBox;
+#endif
    auto combo = mSnapToCombo;
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   if (!snapControl || !combo)
+#else
    if (!checkBox || !combo)
+#endif
       return;
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   const bool snapEnabled = snapControl->IsChecked();
+#else
    const bool snapEnabled = checkBox->GetValue();
+#endif
    const auto projectId = AudacityCaliber::ProjectSnapId(*project);
    if (!mCaliberSnapSession || mCaliberSnapSession->ProjectId() != projectId)
       mCaliberSnapSession = std::make_shared<AudacityCaliber::SnapSession>(projectId);
@@ -444,8 +475,13 @@ void SnappingToolBar::OnSnapModeChanged()
    const bool actualEnabled = result.hasState
       ? result.state.mode != AudacityCaliber::SnapMode::Off
       : ProjectSnap::Get(*project).GetSnapMode() != SnapMode::SNAP_OFF;
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   if (snapControl)
+      snapControl->SetChecked(actualEnabled);
+#else
    if (checkBox)
       checkBox->SetValue(actualEnabled);
+#endif
    if (combo) {
       combo->Enable(actualEnabled);
       if (!actualEnabled)
@@ -455,16 +491,37 @@ void SnappingToolBar::OnSnapModeChanged()
       wxLogWarning("Caliber Snap boundary failed (status %d, apply started %d)",
          static_cast<int>(result.status), static_cast<int>(result.applyStarted));
 #else
-   const bool snapEnabled = mSnapModeCheckBox->GetValue();
+   const bool snapEnabled = SnapModeEnabled();
    ProjectSnap::Get(mProject).SetSnapMode(
       snapEnabled ? SnapMode::SNAP_NEAREST : SnapMode::SNAP_OFF);
 
-   mSnapToCombo->Enable(snapEnabled);
+   if (mSnapToCombo)
+      mSnapToCombo->Enable(snapEnabled);
 
    // wxEVT_KILL_FOCUS is not always sent by wxWidgets.
    // Remove any selection from the combo box if we've disabled it.
-   if (!snapEnabled)
+   if (!snapEnabled && mSnapToCombo)
       mSnapToCombo->SelectNone();
+#endif
+}
+
+bool SnappingToolBar::SnapModeEnabled() const
+{
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   return mAlicornSnapControl && mAlicornSnapControl->IsChecked();
+#else
+   return mSnapModeCheckBox && mSnapModeCheckBox->GetValue();
+#endif
+}
+
+void SnappingToolBar::SetSnapModeEnabled(bool enabled)
+{
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   if (mAlicornSnapControl)
+      mAlicornSnapControl->SetChecked(enabled);
+#else
+   if (mSnapModeCheckBox)
+      mSnapModeCheckBox->SetValue(enabled);
 #endif
 }
 
