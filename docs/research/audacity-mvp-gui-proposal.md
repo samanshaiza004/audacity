@@ -126,7 +126,7 @@ Each addition should be an end-to-end vertical slice: backend command and persis
 
 The current Alicorn work covers a handful of toolbar controls; the waveform editor and the editing workflow above have not started. By visible UI surface, this is roughly **5–10% of the GUI migration**, but effectively **0% of the MVP editing loop**. These are planning estimates, not measured code-completion metrics.
 
-If existing Audacity project, audio, import, and export operations can be exposed behind the boundary, estimate **8–14 engineer-weeks** for the hosted waveform editor, core edit loop, persistence, recovery, accessibility, and native validation (about 2–4 calendar months for one experienced engineer). The current Odin/Caliber experiment does not yet own all of project I/O, import, playback, and export, so making the backend rewrite a strict prerequisite adds a separate, not-yet-sized phase. Re-estimate after the window-host spike and the first import→waveform→playback vertical slice.
+Assuming the selected project, audio, import, and export operations are available behind the application boundary, estimate **8–14 engineer-weeks** for the hosted waveform editor, core edit loop, persistence, recovery, accessibility, and native validation (about 2–4 calendar months for one experienced engineer). This excludes completion of the broader Odin/Caliber backend rewrite; the total schedule depends on which of those operations still need to be ported. Re-estimate after the window-host spike and the first import→waveform→playback vertical slice.
 
 Full parity is not responsibly dateable from this MVP estimate. It is multiple feature and platform-validation cycles beyond the first release.
 
