@@ -36,6 +36,10 @@
 #include "../widgets/BasicMenu.h"
 #include "wxWidgetsWindowPlacement.h"
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+#include "AlicornActionControl.h"
+#endif
+
 namespace {
    class ViewDeviceSettingsDialog final : public PrefsDialog
    {
@@ -146,6 +150,14 @@ void AudioSetupToolBar::Repaint(wxDC* dc)
 void AudioSetupToolBar::MakeAudioSetupButton()
 {
    const auto size = wxSize{-1, (toolbarSingle - toolbarMargin ) * 2 };
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   const auto label = XO("Audio Setup").Translation();
+   mAlicornAudioSetup = safenew AlicornActionControl(
+      this, ID_AUDIO_SETUP_BUTTON, label);
+   mAlicornAudioSetup->SetName(label);
+   mAlicornAudioSetup->SetMinSize({ 112, size.y });
+   mAlicornAudioSetup->SetMaxSize({ 112, size.y });
+#else
    mAudioSetup = safenew AButton(this, ID_AUDIO_SETUP_BUTTON);
    //i18n-hint: Audio setup button text, keep as short as possible
    mAudioSetup->SetLabel(XO("Audio Setup"));
@@ -160,11 +172,16 @@ void AudioSetupToolBar::MakeAudioSetupButton()
    mAudioSetup->SetForegroundColour(theTheme.Colour(clrTrackPanelText));
    mAudioSetup->SetMinSize(size);
    mAudioSetup->SetMaxSize(size);
+#endif
 }
 
 void AudioSetupToolBar::ArrangeButtons()
 {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   Add(mAlicornAudioSetup, 0, wxALIGN_CENTER | wxALL, toolbarSpacing);
+#else
    Add(mAudioSetup, 0, wxALIGN_CENTER | wxALL, toolbarSpacing);
+#endif
    // Layout the toolbar
    Layout();
    SetMinSize(GetSizer()->GetMinSize());
@@ -172,15 +189,24 @@ void AudioSetupToolBar::ArrangeButtons()
 
 void AudioSetupToolBar::ReCreateButtons()
 {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   const auto isAudioSetupDown = mAlicornAudioSetup && mAlicornAudioSetup->IsPressed();
+#else
    const auto isAudioSetupDown = mAudioSetup != nullptr
       ? mAudioSetup->IsDown()
       : false;
+#endif
 
    ToolBar::ReCreateButtons();
 
    if (isAudioSetupDown)
    {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+      if (mAlicornAudioSetup)
+         mAlicornAudioSetup->SetPressed(true);
+#else
       mAudioSetup->PushDown();
+#endif
    }
 
    EnableDisableButtons();
@@ -195,6 +221,10 @@ void AudioSetupToolBar::OnFocus(wxFocusEvent &event)
 
 void AudioSetupToolBar::OnAudioSetup(wxCommandEvent& WXUNUSED(evt))
 {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   if (mAlicornAudioSetup)
+      mAlicornAudioSetup->SetPressed(true);
+#endif
    wxMenu menu;
 
    //i18n-hint: Audio setup menu
@@ -218,7 +248,15 @@ void AudioSetupToolBar::OnAudioSetup(wxCommandEvent& WXUNUSED(evt))
    menu.Append(kAudioDeviceRescan, _("R&escan Audio Devices"));
    menu.Append(kAudioSettings, _("&Audio Settings..."));
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   const auto audioSetupControl = mAlicornAudioSetup;
+   menu.Bind(wxEVT_MENU_CLOSE, [audioSetupControl](auto&) {
+      if (audioSetupControl)
+         audioSetupControl->SetPressed(false);
+   });
+#else
    menu.Bind(wxEVT_MENU_CLOSE, [this](auto&) { mAudioSetup->PopUp(); });
+#endif
    menu.Bind(wxEVT_MENU, &AudioSetupToolBar::OnAudioDeviceRescan, this, kAudioDeviceRescan);
    menu.Bind(wxEVT_MENU, &AudioSetupToolBar::OnSettings, this, kAudioSettings);
 
@@ -360,10 +398,20 @@ void AudioSetupToolBar::EnableDisableButtons()
       bool audioStreamActive = gAudioIO->IsStreamActive() && !gAudioIO->IsMonitoring();
 
       if (audioStreamActive) {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+         if (mAlicornAudioSetup)
+            mAlicornAudioSetup->SetAlicornEnabled(false);
+#else
          mAudioSetup->Disable();
+#endif
       }
       else {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+         if (mAlicornAudioSetup)
+            mAlicornAudioSetup->SetAlicornEnabled(true);
+#else
          mAudioSetup->Enable();
+#endif
       }
    }
 }
@@ -371,6 +419,10 @@ void AudioSetupToolBar::EnableDisableButtons()
 void AudioSetupToolBar::RegenerateTooltips()
 {
 #if wxUSE_TOOLTIPS
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   if (mAlicornAudioSetup)
+      mAlicornAudioSetup->SetToolTip(XO("Open Audio Setup").Translation());
+#else
    for (long iWinID = ID_AUDIO_SETUP_BUTTON; iWinID < BUTTON_COUNT; iWinID++)
    {
       auto pCtrl = static_cast<AButton*>(this->FindWindow(iWinID));
@@ -393,6 +445,7 @@ void AudioSetupToolBar::RegenerateTooltips()
       ToolBar::SetButtonToolTip(
          mProject, *pCtrl, commands.data(), commands.size());
    }
+#endif
 #endif
 }
 

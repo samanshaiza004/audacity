@@ -13,6 +13,7 @@
 #include <optional>
 #include <vector>
 #include <wx/menu.h>
+#include <wx/weakref.h>
 #include "IteratorX.h"
 #include "ToolBar.h"
 #include "Observer.h"
@@ -22,6 +23,8 @@ enum class DeviceChangeMessage : char;
 class wxMenu;
 class wxString;
 struct DeviceSourceMap;
+class AButton;
+class AlicornActionControl;
 
 class AudioSetupToolBar final : public ToolBar {
    static constexpr int kAudioSettings = 15800;
@@ -86,7 +89,11 @@ class AudioSetupToolBar final : public ToolBar {
       BUTTON_COUNT,
    };
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   wxWeakRef<AlicornActionControl> mAlicornAudioSetup;
+#else
    AButton *mAudioSetup{};
+#endif
 
    class Choices {
    public:

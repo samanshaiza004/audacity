@@ -2,6 +2,7 @@ package audacity_alicorn_snap_view
 
 import alicorn "alicorn:runtime"
 import odin_runtime "base:runtime"
+import "core:strings"
 
 AudacitySnapRect :: struct {
 	x, y, width, height: f32,
@@ -72,6 +73,7 @@ AUDACITY_SNAP_POINTER_CANCEL :: u32(3)
 AUDACITY_SNAP_KEY_TAB :: u32(0)
 AUDACITY_SNAP_KEY_SHIFT_TAB :: u32(1)
 AUDACITY_SNAP_KEY_SPACE :: u32(2)
+AUDACITY_SNAP_KEY_ACTIVATE :: u32(3)
 
 valid_view :: proc(view: ^View) -> bool {
 	return view != nil && view.runtime_initialized && !view.callback_active
@@ -328,6 +330,229 @@ audacity_alicorn_snap_view_paint :: proc "c" (
 			output = snap_view_command_base(retained, AUDACITY_SNAP_DRAW_ICON)
 			output.icon_id = AUDACITY_SNAP_ICON_CHECK
 			output.fill = snap_color(payload.color)
+		case alicorn.Text_Paint:
+			run, run_ok := alicorn.paint_text_run_resolve(&view.runtime, payload.run)
+			if !run_ok { continue }
+			output = snap_view_command_base(retained, AUDACITY_SNAP_DRAW_TEXT)
+			output.text_color = snap_color(payload.color)
+			output.text_length = u64(len(run.value))
+			if len(run.value) > 0 { output.text_utf8 = raw_data(run.value) }
+		case alicorn.Backdrop_Effect_Paint, alicorn.Image_Paint, alicorn.Geometry_Paint:
+			continue
+		case:
+			continue
+		}
+		callback(callback_context, &output)
+		delivered += 1
+	}
+	view.callback_active = false
+	return delivered
+}
+
+Action_View :: struct {
+	runtime: alicorn.Runtime,
+	button_id: alicorn.Node_ID,
+	label: string,
+	last_enabled: bool,
+	last_pressed: bool,
+	state_initialized: bool,
+	callback_active: bool,
+	runtime_initialized: bool,
+}
+
+valid_action_view :: proc(view: ^Action_View) -> bool {
+	return view != nil && view.runtime_initialized && !view.callback_active
+}
+
+action_view_build_description :: proc(view: ^Action_View, enabled, pressed: bool) -> (built, activated: bool) {
+	ui, should_build := alicorn.begin_frame(&view.runtime)
+	if !should_build { return false, false }
+
+	viewport := alicorn.viewport_bounds(&view.runtime)
+	root_style := alicorn.layout_style(.Row, width=viewport.w, height=viewport.h, padding=2, align=.Center)
+	_ = alicorn.container_begin(
+		&ui,
+		.Root,
+		key=alicorn.key_string("audacity-alicorn-action-root"),
+		style=root_style,
+	)
+	activated = alicorn.button(
+		&ui,
+		view.label,
+		key=alicorn.key_string("audacity-alicorn-action-button"),
+		style=alicorn.layout_style(.Row, width=max(0.0, viewport.w-4), height=max(0.0, viewport.h-4), align=.Center),
+		state=alicorn.Button_State{selected=pressed, disabled=!enabled},
+	)
+	alicorn.container_end(&ui)
+	alicorn.end_frame(&ui)
+	view.button_id, _ = alicorn.node_by_key(
+		&view.runtime,
+		alicorn.key_string("audacity-alicorn-action-button"),
+		.Button,
+	)
+	return true, activated
+}
+
+@(export, link_name="audacity_alicorn_action_view_create")
+audacity_alicorn_action_view_create :: proc "c" (
+	width, height: f32,
+	label_utf8: cstring,
+	enabled, pressed: u8,
+) -> rawptr {
+	context = odin_runtime.default_context()
+	if !alicorn.number_is_finite(width) || !alicorn.number_is_finite(height) || width < 0 || height < 0 || label_utf8 == nil {
+		return nil
+	}
+	label := string(label_utf8)
+	if len(label) == 0 || len(label) > 256 { return nil }
+	owned_label, clone_error := strings.clone(label, context.allocator)
+	if clone_error != nil { return nil }
+
+	view := new(Action_View)
+	view.runtime = alicorn.new_runtime(alicorn.Rect{0, 0, width, height})
+	view.runtime_initialized = true
+	view.label = owned_label
+	view.last_enabled = enabled != 0
+	view.last_pressed = pressed != 0
+	view.state_initialized = true
+	if !alicorn.text_engine_load_default_fonts(&view.runtime) {
+		alicorn.destroy_runtime(&view.runtime)
+		view.runtime_initialized = false
+		delete(view.label, context.allocator)
+		free(view)
+		return nil
+	}
+	return rawptr(view)
+}
+
+@(export, link_name="audacity_alicorn_action_view_destroy")
+audacity_alicorn_action_view_destroy :: proc "c" (opaque_view: rawptr) {
+	if opaque_view == nil { return }
+	context = odin_runtime.default_context()
+	view := transmute(^Action_View)opaque_view
+	if view.callback_active { return }
+	if view.runtime_initialized {
+		alicorn.destroy_runtime(&view.runtime)
+		view.runtime_initialized = false
+	}
+	delete(view.label, context.allocator)
+	free(view)
+}
+
+@(export, link_name="audacity_alicorn_action_view_resize")
+audacity_alicorn_action_view_resize :: proc "c" (opaque_view: rawptr, width, height: f32) -> i32 {
+	context = odin_runtime.default_context()
+	view := transmute(^Action_View)opaque_view
+	if !valid_action_view(view) || !alicorn.number_is_finite(width) || !alicorn.number_is_finite(height) || width < 0 || height < 0 {
+		return -1
+	}
+	previous := alicorn.viewport_bounds(&view.runtime)
+	if previous.x == 0 && previous.y == 0 && previous.w == width && previous.h == height { return 0 }
+	return 1 if alicorn.runtime_set_viewport(&view.runtime, alicorn.Rect{0, 0, width, height}) else -1
+}
+
+@(export, link_name="audacity_alicorn_action_view_pointer")
+audacity_alicorn_action_view_pointer :: proc "c" (
+	opaque_view: rawptr,
+	kind: u32,
+	x, y: f32,
+	button: u32,
+) -> i32 {
+	context = odin_runtime.default_context()
+	view := transmute(^Action_View)opaque_view
+	if !valid_action_view(view) || !alicorn.number_is_finite(x) || !alicorn.number_is_finite(y) || button > 3 { return -1 }
+	pointer_kind: alicorn.Pointer_Kind
+	switch kind {
+	case AUDACITY_SNAP_POINTER_MOVE: pointer_kind = .Move
+	case AUDACITY_SNAP_POINTER_DOWN: pointer_kind = .Down
+	case AUDACITY_SNAP_POINTER_UP: pointer_kind = .Up
+	case AUDACITY_SNAP_POINTER_CANCEL: pointer_kind = .Cancel
+	case: return -1
+	}
+	target := alicorn.process_pointer(&view.runtime, alicorn.Pointer_Event{
+		kind=pointer_kind,
+		x=x,
+		y=y,
+		button=int(button),
+	})
+	return 1 if target != 0 && target == view.button_id else 0
+}
+
+@(export, link_name="audacity_alicorn_action_view_key")
+audacity_alicorn_action_view_key :: proc "c" (opaque_view: rawptr, key: u32) -> i32 {
+	context = odin_runtime.default_context()
+	view := transmute(^Action_View)opaque_view
+	if !valid_action_view(view) { return -1 }
+	switch key {
+	case AUDACITY_SNAP_KEY_TAB:
+		return 1 if alicorn.application_dispatch_tab_focus(&view.runtime, false) else 0
+	case AUDACITY_SNAP_KEY_SHIFT_TAB:
+		return 1 if alicorn.application_dispatch_tab_focus(&view.runtime, true) else 0
+	case AUDACITY_SNAP_KEY_SPACE:
+		return 1 if alicorn.application_route_focused_control_key(&view.runtime, .Toggle) else 0
+	case AUDACITY_SNAP_KEY_ACTIVATE:
+		return 1 if alicorn.application_route_focused_control_key(&view.runtime, .Return) else 0
+	case:
+		return -1
+	}
+}
+
+@(export, link_name="audacity_alicorn_action_view_update")
+audacity_alicorn_action_view_update :: proc "c" (
+	opaque_view: rawptr,
+	enabled, pressed: u8,
+	out_activated: ^u8,
+) -> i32 {
+	context = odin_runtime.default_context()
+	view := transmute(^Action_View)opaque_view
+	if !valid_action_view(view) { return -1 }
+	enabled_value, pressed_value := enabled != 0, pressed != 0
+	if out_activated != nil { out_activated^ = 0 }
+	if view.state_initialized && (view.last_enabled != enabled_value || view.last_pressed != pressed_value) {
+		alicorn.invalidate_root(&view.runtime, "Audacity action button state changed")
+	}
+	view.last_enabled, view.last_pressed = enabled_value, pressed_value
+	view.state_initialized = true
+	built, activated := action_view_build_description(view, enabled_value, pressed_value)
+	if built {
+		if activated && out_activated != nil { out_activated^ = 1 }
+		return 1
+	}
+	ui, ready := alicorn.begin_presentation_frame(&view.runtime)
+	if ready {
+		alicorn.end_presentation_frame(&ui)
+		return 1
+	}
+	return 0
+}
+
+@(export, link_name="audacity_alicorn_action_view_paint")
+audacity_alicorn_action_view_paint :: proc "c" (
+	opaque_view: rawptr,
+	callback: AudacitySnapDrawCallback,
+	callback_context: rawptr,
+) -> i32 {
+	context = odin_runtime.default_context()
+	view := transmute(^Action_View)opaque_view
+	if !valid_action_view(view) || callback == nil { return -1 }
+	display, ok := alicorn.paint_display_list(&view.runtime)
+	if !ok { return -1 }
+	view.callback_active = true
+	delivered := i32(0)
+	for retained in display.commands {
+		if retained.owner != view.button_id { continue }
+		output := AudacitySnapDrawCommand{}
+		switch payload in retained.payload {
+		case alicorn.Surface_Paint:
+			output = snap_view_command_base(retained, AUDACITY_SNAP_DRAW_SURFACE)
+			output.fill = snap_color(payload.fill)
+			output.stroke = snap_color(payload.stroke.color)
+			output.stroke_width = payload.stroke.width
+			output.radius = payload.shape.corner_radius
+			output.shape_kind = snap_shape_kind(payload.shape.kind)
+			output.material_id = u32(payload.material)
+		case alicorn.Icon_Paint:
+			continue
 		case alicorn.Text_Paint:
 			run, run_ok := alicorn.paint_text_run_resolve(&view.runtime, payload.run)
 			if !run_ok { continue }

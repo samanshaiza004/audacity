@@ -50,6 +50,9 @@ endif()
 
 if( audacity_use_alicorn_snap_ui )
    target_sources( ${TARGET} PRIVATE
+      toolbars/AlicornActionControl.cpp
+      toolbars/AlicornActionControl.h
+      toolbars/AlicornPaint.h
       toolbars/AlicornSnapControl.cpp
       toolbars/AlicornSnapControl.h
    )

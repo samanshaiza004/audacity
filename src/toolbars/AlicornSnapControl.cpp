@@ -11,6 +11,7 @@
 #include <wx/graphics.h>
 #include <wx/log.h>
 
+#include "AlicornPaint.h"
 #include "AudacitySnapView.h"
 
 #if wxUSE_ACCESSIBILITY
@@ -102,13 +103,10 @@ wxColour ToWxColour(AudacitySnapColor color, float opacity)
       static_cast<unsigned char>(std::lround(LinearToSrgb(color.b) * 255.0)),
       static_cast<unsigned char>(std::lround(alpha * 255.0f)));
 }
+}
 
-struct PaintContext {
-   wxGraphicsContext* graphics{};
-   wxFont font;
-};
-
-void DrawAlicornCommand(void* rawContext, const AudacitySnapDrawCommand* command)
+namespace AudacityAlicorn {
+void DrawPaintCommand(void* rawContext, const AudacitySnapDrawCommand* command)
 {
    auto* context = static_cast<PaintContext*>(rawContext);
    if (!context || !context->graphics || !command)
@@ -285,9 +283,9 @@ void AlicornSnapControl::OnPaint(wxPaintEvent&)
    std::unique_ptr<wxGraphicsContext> graphics{ wxGraphicsContext::Create(dc) };
    if (!graphics)
       return;
-   PaintContext context{ graphics.get(), GetFont() };
+   AudacityAlicorn::PaintContext context{ graphics.get(), GetFont() };
    if (audacity_alicorn_snap_view_paint(
-          mView, &DrawAlicornCommand, &context) < 0)
+          mView, &AudacityAlicorn::DrawPaintCommand, &context) < 0)
       wxLogWarning(wxT("Alicorn Snap control could not read its paint list"));
 }
 

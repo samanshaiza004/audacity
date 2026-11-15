@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 typedef struct AudacityAlicornSnapView AudacityAlicornSnapView;
+typedef struct AudacityAlicornActionView AudacityAlicornActionView;
 
 typedef struct AudacitySnapRect {
     float x;
@@ -86,7 +87,8 @@ enum {
 enum {
     AUDACITY_SNAP_KEY_TAB = 0,
     AUDACITY_SNAP_KEY_SHIFT_TAB = 1,
-    AUDACITY_SNAP_KEY_SPACE = 2
+    AUDACITY_SNAP_KEY_SPACE = 2,
+    AUDACITY_SNAP_KEY_ACTIVATE = 3
 };
 
 /*
@@ -148,6 +150,38 @@ int32_t audacity_alicorn_snap_view_update(
  */
 int32_t audacity_alicorn_snap_view_paint(
     AudacityAlicornSnapView *view,
+    AudacitySnapDrawCallback callback,
+    void *context);
+
+/* Creates a labeled, controlled Alicorn action button for a native host. */
+AudacityAlicornActionView *audacity_alicorn_action_view_create(
+    float width,
+    float height,
+    const char *label_utf8,
+    uint8_t enabled,
+    uint8_t pressed);
+
+void audacity_alicorn_action_view_destroy(AudacityAlicornActionView *view);
+int32_t audacity_alicorn_action_view_resize(
+    AudacityAlicornActionView *view,
+    float width,
+    float height);
+int32_t audacity_alicorn_action_view_pointer(
+    AudacityAlicornActionView *view,
+    uint32_t kind,
+    float x,
+    float y,
+    uint32_t button);
+int32_t audacity_alicorn_action_view_key(
+    AudacityAlicornActionView *view,
+    uint32_t key);
+int32_t audacity_alicorn_action_view_update(
+    AudacityAlicornActionView *view,
+    uint8_t enabled,
+    uint8_t pressed,
+    uint8_t *out_activated);
+int32_t audacity_alicorn_action_view_paint(
+    AudacityAlicornActionView *view,
     AudacitySnapDrawCallback callback,
     void *context);
 
