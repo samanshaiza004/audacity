@@ -107,6 +107,53 @@ wxColour ToWxColour(AudacitySnapColor color, float opacity)
       static_cast<unsigned char>(std::lround(LinearToSrgb(color.b) * 255.0)),
       static_cast<unsigned char>(std::lround(alpha * 255.0f)));
 }
+
+bool ActionThemeImage(uint32_t iconId, bool enabled, teBmps& imageId)
+{
+   switch (iconId) {
+   case AUDACITY_SNAP_ICON_CUT:
+      imageId = enabled ? bmpCut : bmpCutDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_COPY:
+      imageId = enabled ? bmpCopy : bmpCopyDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_PASTE:
+      imageId = enabled ? bmpPaste : bmpPasteDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_DELETE:
+      imageId = enabled ? bmpDelete : bmpDeleteDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_ZOOM_IN:
+      imageId = enabled ? bmpZoomIn : bmpZoomInDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_ZOOM_OUT:
+      imageId = enabled ? bmpZoomOut : bmpZoomOutDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_ZOOM_SELECTION:
+      imageId = enabled ? bmpZoomSel : bmpZoomSelDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_ZOOM_FIT:
+      imageId = enabled ? bmpZoomFit : bmpZoomFitDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_ZOOM_TOGGLE:
+      imageId = enabled ? bmpZoomToggle : bmpZoomToggleDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_TRIM:
+      imageId = enabled ? bmpTrim : bmpTrimDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_SILENCE:
+      imageId = enabled ? bmpSilence : bmpSilenceDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_UNDO:
+      imageId = enabled ? bmpUndo : bmpUndoDisabled;
+      return true;
+   case AUDACITY_SNAP_ICON_REDO:
+      imageId = enabled ? bmpRedo : bmpRedoDisabled;
+      return true;
+   default:
+      return false;
+   }
+}
 }
 
 namespace AudacityAlicorn {
@@ -188,27 +235,15 @@ void DrawPaintCommand(void* rawContext, const AudacitySnapDrawCommand* command)
          }
       }
       else if (command->icon_id >= AUDACITY_SNAP_ICON_CUT &&
-               command->icon_id <= AUDACITY_SNAP_ICON_DELETE) {
-         teBmps image_id = bmpCut;
-         switch (command->icon_id) {
-         case AUDACITY_SNAP_ICON_CUT:
-            image_id = context->enabled ? bmpCut : bmpCutDisabled;
-            break;
-         case AUDACITY_SNAP_ICON_COPY:
-            image_id = context->enabled ? bmpCopy : bmpCopyDisabled;
-            break;
-         case AUDACITY_SNAP_ICON_PASTE:
-            image_id = context->enabled ? bmpPaste : bmpPasteDisabled;
-            break;
-         case AUDACITY_SNAP_ICON_DELETE:
-            image_id = context->enabled ? bmpDelete : bmpDeleteDisabled;
-            break;
-         }
-         const auto image = theTheme.Image(image_id);
-         if (image.IsOk()) {
-            const wxBitmap bitmap{ image };
-            graphics->DrawBitmap(bitmap, bounds.x, bounds.y,
-               bounds.width, bounds.height);
+               command->icon_id <= AUDACITY_SNAP_ICON_REDO) {
+         teBmps image_id;
+         if (ActionThemeImage(command->icon_id, context->enabled, image_id)) {
+            const auto image = theTheme.Image(image_id);
+            if (image.IsOk()) {
+               const wxBitmap bitmap{ image };
+               graphics->DrawBitmap(bitmap, bounds.x, bounds.y,
+                  bounds.width, bounds.height);
+            }
          }
       }
       break;

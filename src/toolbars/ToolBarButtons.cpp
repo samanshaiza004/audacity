@@ -92,7 +92,12 @@ void ToolBarButtons::RegisterButton(int id, wxWindow *button)
 
 void ToolBarButtons::SetEnabled(int id, bool state)
 {
-   if (id >= 0 && static_cast<size_t>(id) < mButtons.size() && mButtons[id])
+   if (id < 0 || static_cast<size_t>(id) >= mButtons.size() || !mButtons[id])
+      return;
+
+   if (auto *button = dynamic_cast<AButton*>(mButtons[id]))
+      button->SetEnabled(state);
+   else
       mButtons[id]->Enable(state);
 }
 

@@ -5,6 +5,10 @@
 
 #include "AudacitySnapView.h"
 
+namespace AudacityAlicorn {
+uint32_t ActionIconForThemeBitmap(int bitmapId);
+}
+
 class AlicornActionControl final : public wxWindow {
 public:
    AlicornActionControl(

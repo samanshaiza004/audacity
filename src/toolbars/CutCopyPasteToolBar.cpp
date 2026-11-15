@@ -128,24 +128,20 @@ void CutCopyPasteToolBar::AddButton(
    int id, const TranslatableString &label, bool toggle)
 {
 #ifdef AUDACITY_USE_ALICORN_SNAP_UI
-   static_cast<void>(eEnabledDown);
-   static_cast<void>(eDisabled);
-   static_cast<void>(toggle);
-   uint32_t iconId = AUDACITY_ACTION_ICON_NONE;
-   if (eEnabledUp == bmpCut)
-      iconId = AUDACITY_ACTION_ICON_CUT;
-   else if (eEnabledUp == bmpCopy)
-      iconId = AUDACITY_ACTION_ICON_COPY;
-   else if (eEnabledUp == bmpPaste)
-      iconId = AUDACITY_ACTION_ICON_PASTE;
-   else if (eEnabledUp == bmpDelete)
-      iconId = AUDACITY_ACTION_ICON_DELETE;
-   const auto name = label.Translation();
-   auto button = safenew AlicornActionControl(
-      this, id + first_TB_ID, name, iconId, wxSize{ 25, 25 });
-   button->SetName(name);
-   mButtons.RegisterButton(id, button);
-   mToolSizer->Add(button);
+   const auto iconId = AudacityAlicorn::ActionIconForThemeBitmap(eEnabledUp);
+   if (iconId != AUDACITY_ACTION_ICON_NONE) {
+      const auto name = label.Translation();
+      auto button = safenew AlicornActionControl(
+         this, id + first_TB_ID, name, iconId, wxSize{ 25, 25 });
+      button->SetName(name);
+      mButtons.RegisterButton(id, button);
+      mToolSizer->Add(button);
+   }
+   else {
+      auto button = mButtons.CreateButton(
+         eEnabledUp, eEnabledDown, eDisabled, id, label, toggle);
+      mToolSizer->Add(button);
+   }
 #else
    auto r = mButtons.CreateButton(eEnabledUp, eEnabledDown, eDisabled, id, label, toggle);
    mToolSizer->Add(r);

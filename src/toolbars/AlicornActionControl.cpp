@@ -8,7 +8,28 @@
 #include <wx/graphics.h>
 #include <wx/log.h>
 
+#include "AllThemeResources.h"
 #include "AlicornPaint.h"
+
+namespace AudacityAlicorn {
+uint32_t ActionIconForThemeBitmap(int bitmapId)
+{
+   if (bitmapId == bmpCut) return AUDACITY_ACTION_ICON_CUT;
+   if (bitmapId == bmpCopy) return AUDACITY_ACTION_ICON_COPY;
+   if (bitmapId == bmpPaste) return AUDACITY_ACTION_ICON_PASTE;
+   if (bitmapId == bmpDelete) return AUDACITY_ACTION_ICON_DELETE;
+   if (bitmapId == bmpZoomIn) return AUDACITY_ACTION_ICON_ZOOM_IN;
+   if (bitmapId == bmpZoomOut) return AUDACITY_ACTION_ICON_ZOOM_OUT;
+   if (bitmapId == bmpZoomSel) return AUDACITY_ACTION_ICON_ZOOM_SELECTION;
+   if (bitmapId == bmpZoomFit) return AUDACITY_ACTION_ICON_ZOOM_FIT;
+   if (bitmapId == bmpZoomToggle) return AUDACITY_ACTION_ICON_ZOOM_TOGGLE;
+   if (bitmapId == bmpTrim) return AUDACITY_ACTION_ICON_TRIM;
+   if (bitmapId == bmpSilence) return AUDACITY_ACTION_ICON_SILENCE;
+   if (bitmapId == bmpUndo) return AUDACITY_ACTION_ICON_UNDO;
+   if (bitmapId == bmpRedo) return AUDACITY_ACTION_ICON_REDO;
+   return AUDACITY_ACTION_ICON_NONE;
+}
+}
 
 #if wxUSE_ACCESSIBILITY
 #include "WindowAccessible.h"
