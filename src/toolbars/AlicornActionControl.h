@@ -7,7 +7,10 @@
 
 class AlicornActionControl final : public wxWindow {
 public:
-   AlicornActionControl(wxWindow* parent, wxWindowID id, const wxString& label);
+   AlicornActionControl(
+      wxWindow* parent, wxWindowID id, const wxString& label,
+      uint32_t iconId = AUDACITY_ACTION_ICON_NONE,
+      wxSize size = wxDefaultSize);
    ~AlicornActionControl() override;
 
    bool IsPressed() const noexcept { return mPressed; }

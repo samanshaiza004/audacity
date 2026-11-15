@@ -69,7 +69,10 @@ enum {
 /* Alicorn icon values emitted by this ABI. */
 enum {
     AUDACITY_SNAP_ICON_NONE = 0,
-    AUDACITY_SNAP_ICON_CHECK = 1
+    AUDACITY_SNAP_ICON_CHECK = 1,
+    AUDACITY_SNAP_ICON_SETTINGS = 2,
+    AUDACITY_ACTION_ICON_NONE = 0,
+    AUDACITY_ACTION_ICON_SETTINGS = 1
 };
 
 /* Pointer kinds; button values use 1=primary, 2=middle, 3=secondary. */
@@ -159,7 +162,8 @@ AudacityAlicornActionView *audacity_alicorn_action_view_create(
     float height,
     const char *label_utf8,
     uint8_t enabled,
-    uint8_t pressed);
+    uint8_t pressed,
+    uint32_t icon_id);
 
 void audacity_alicorn_action_view_destroy(AudacityAlicornActionView *view);
 int32_t audacity_alicorn_action_view_resize(

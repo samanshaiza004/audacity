@@ -8,9 +8,13 @@
 #include <memory>
 
 #include <wx/dcbuffer.h>
+#include <wx/bitmap.h>
 #include <wx/graphics.h>
 #include <wx/log.h>
 
+#include "AColor.h"
+#include "AllThemeResources.h"
+#include "Theme.h"
 #include "AlicornPaint.h"
 #include "AudacitySnapView.h"
 
@@ -162,6 +166,14 @@ void DrawPaintCommand(void* rawContext, const AudacitySnapDrawCommand* command)
          path.AddLineToPoint(bounds.x + bounds.width * 0.82,
             bounds.y + bounds.height * 0.25);
          graphics->StrokePath(path);
+      }
+      else if (command->icon_id == AUDACITY_SNAP_ICON_SETTINGS) {
+         const auto image = theTheme.Image(bmpCogwheel);
+         if (image.IsOk()) {
+            const wxBitmap bitmap{ image };
+            graphics->DrawBitmap(bitmap, bounds.x, bounds.y,
+               bounds.width, bounds.height);
+         }
       }
       break;
    case AUDACITY_SNAP_DRAW_TEXT:

@@ -73,10 +73,13 @@ const wxSize MinimumSize{ 112, 48 };
 }
 
 AlicornActionControl::AlicornActionControl(
-   wxWindow* parent, wxWindowID id, const wxString& label)
-   : wxWindow(parent, id, wxDefaultPosition, MinimumSize, wxBORDER_NONE)
+   wxWindow* parent, wxWindowID id, const wxString& label,
+   uint32_t iconId, wxSize size)
+   : wxWindow(parent, id, wxDefaultPosition,
+      size == wxDefaultSize ? MinimumSize : size, wxBORDER_NONE)
 {
-   SetMinSize(MinimumSize);
+   const auto initialSize = size == wxDefaultSize ? MinimumSize : size;
+   SetMinSize(initialSize);
    SetBackgroundStyle(wxBG_STYLE_PAINT);
    SetName(label);
    const auto utf8 = label.utf8_str();
@@ -85,7 +88,8 @@ AlicornActionControl::AlicornActionControl(
       static_cast<float>(GetClientSize().y),
       utf8.data(),
       1,
-      0);
+      0,
+      iconId);
    if (!mView)
       wxLogError(wxT("Could not initialize the Alicorn action button"));
 

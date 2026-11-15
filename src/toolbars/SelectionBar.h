@@ -31,6 +31,9 @@ class wxStaticText;
 
 class AudacityProject;
 class NumericTextCtrl;
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+class AlicornActionControl;
+#endif
 
 extern IntSetting SelectionToolbarMode;
 
@@ -69,7 +72,11 @@ class AUDACITY_DLL_API SelectionBar final : public ToolBar {
    void RegenerateTooltips() override;
 
  private:
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   AlicornActionControl* MakeSetupButton();
+#else
    AButton* MakeSetupButton();
+#endif
    
    void AddTitle( const TranslatableString & Title,
       wxSizer * pSizer );
@@ -101,7 +108,11 @@ class AUDACITY_DLL_API SelectionBar final : public ToolBar {
    SelectionMode mLastSelectionMode {};
 
    std::array<NumericTextCtrl*, 2> mTimeControls {};
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+   AlicornActionControl* mSetupButton{};
+#else
    AButton* mSetupButton{};
+#endif
 
    Observer::Subscription mFormatChangedToFitValueSubscription[2];
 

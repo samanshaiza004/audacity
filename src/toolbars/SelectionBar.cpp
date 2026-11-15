@@ -62,6 +62,11 @@ selection range.
 #include "../widgets/NumericTextCtrl.h"
 #include "wxWidgetsWindowPlacement.h"
 #include "NumericConverterFormats.h"
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+#include "AlicornActionControl.h"
+#include "../alicorn/AudacitySnapView.h"
+#include <wx/weakref.h>
+#endif
 
 IntSetting SelectionToolbarMode { "/SelectionToolbarMode", 0 };
 
@@ -177,6 +182,16 @@ void SelectionBar::Create(wxWindow * parent)
    UpdatePrefs();
 }
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+AlicornActionControl* SelectionBar::MakeSetupButton()
+{
+   const auto label = XO("Selection Toolbar Setup").Translation();
+   auto btn = safenew AlicornActionControl(
+      this, wxID_ANY, label, AUDACITY_ACTION_ICON_SETTINGS, wxSize{ 23, 23 });
+   btn->SetName(label);
+   return btn;
+}
+#else
 AButton* SelectionBar::MakeSetupButton()
 {
    wxImage up = theTheme.Image(bmpRecoloredUpSmall);
@@ -199,6 +214,7 @@ AButton* SelectionBar::MakeSetupButton()
 
    return btn;
 }
+#endif
 
 void SelectionBar::AddTitle(
    const TranslatableString & Title, wxSizer * pSizer ){
@@ -242,6 +258,9 @@ void SelectionBar::AddSelectionSetupButton(wxSizer* pSizer)
 
    auto showMenu = [this, setupBtn]()
    {
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+      setupBtn->SetPressed(true);
+#endif
       static const wxString choices[4] = {
          _("Start and End of Selection"),
          _("Start and Length of Selection"),
@@ -270,12 +289,20 @@ void SelectionBar::AddSelectionSetupButton(wxSizer* pSizer)
          ++selectionMode;
       }
 
+#ifdef AUDACITY_USE_ALICORN_SNAP_UI
+      const wxWeakRef<AlicornActionControl> weakSetupButton{ setupBtn };
+      menu.Bind(wxEVT_MENU_CLOSE, [weakSetupButton](auto&) {
+         if (weakSetupButton)
+            weakSetupButton->SetPressed(false);
+      });
+#else
       menu.Bind(wxEVT_MENU_CLOSE, [setupBtn](auto&) { setupBtn->PopUp(); });
+#endif
 
       BasicMenu::Handle { &menu }.Popup(wxWidgetsWindowPlacement { setupBtn });
    };
 
-   setupBtn->Bind(wxEVT_BUTTON, [this, showMenu](auto&) { showMenu(); });
+   Bind(wxEVT_BUTTON, [showMenu](auto&) { showMenu(); }, setupBtn->GetId());
    pSizer->Add(setupBtn, 0, wxALIGN_RIGHT | wxBOTTOM | wxRIGHT, 5);
 
    mSetupButton = setupBtn;
