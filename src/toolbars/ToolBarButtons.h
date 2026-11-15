@@ -17,6 +17,7 @@
 #include "ToolBar.h"
 
 class wxCommandEvent;
+class wxWindow;
 
 class AudacityProject;
 class AButton;
@@ -38,6 +39,7 @@ public:
    AButton *CreateButton(
       teBmps eEnabledUp, teBmps eEnabledDown, teBmps eDisabled,
       int id, const TranslatableString &label, bool toggle = false);
+   void RegisterButton(int id, wxWindow *button);
 
    void SetEnabled(int id, bool state);
    void SetCustomEnableDisableButtonsAction(std::function<void()> action);
@@ -56,7 +58,7 @@ private:
    AudacityProject &mProject;
    int mFirstButtonId;
 
-   std::vector<AButton*> mButtons;
+   std::vector<wxWindow*> mButtons;
    ButtonList mButtonList;
 
    std::function<void()> mCustomEnableDisableButtonsAction;

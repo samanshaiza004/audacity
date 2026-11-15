@@ -66,9 +66,17 @@ AUDACITY_SNAP_ICON_NONE :: u32(0)
 AUDACITY_SNAP_ICON_CHECK :: u32(1)
 AUDACITY_SNAP_ICON_SETTINGS :: u32(2)
 AUDACITY_SNAP_ICON_AUDIO_SETUP :: u32(3)
+AUDACITY_SNAP_ICON_CUT :: u32(4)
+AUDACITY_SNAP_ICON_COPY :: u32(5)
+AUDACITY_SNAP_ICON_PASTE :: u32(6)
+AUDACITY_SNAP_ICON_DELETE :: u32(7)
 AUDACITY_ACTION_ICON_NONE :: u32(0)
 AUDACITY_ACTION_ICON_SETTINGS :: u32(1)
 AUDACITY_ACTION_ICON_SETUP :: u32(2)
+AUDACITY_ACTION_ICON_CUT :: u32(3)
+AUDACITY_ACTION_ICON_COPY :: u32(4)
+AUDACITY_ACTION_ICON_PASTE :: u32(5)
+AUDACITY_ACTION_ICON_DELETE :: u32(6)
 
 AUDACITY_SNAP_POINTER_MOVE :: u32(0)
 AUDACITY_SNAP_POINTER_DOWN :: u32(1)
@@ -390,6 +398,8 @@ action_view_build_description :: proc(view: ^Action_View, enabled, pressed: bool
 	if show_icon_label {
 		button_style = alicorn.layout_style(.Column, width=max(0.0, viewport.w-4), height=max(0.0, viewport.h-4), align=.Center, justify=.Center, gap=1)
 		icon_size = 24
+	} else if view.paint_icon_id >= AUDACITY_SNAP_ICON_CUT {
+		icon_size = 20
 	}
 	view.icon_node_id = 0
 	if view.icon_id != .None {
@@ -458,6 +468,18 @@ audacity_alicorn_action_view_create :: proc "c" (
 	case AUDACITY_ACTION_ICON_SETUP:
 		icon = .Settings
 		paint_icon_id = AUDACITY_SNAP_ICON_AUDIO_SETUP
+	case AUDACITY_ACTION_ICON_CUT:
+		icon = .Settings
+		paint_icon_id = AUDACITY_SNAP_ICON_CUT
+	case AUDACITY_ACTION_ICON_COPY:
+		icon = .Settings
+		paint_icon_id = AUDACITY_SNAP_ICON_COPY
+	case AUDACITY_ACTION_ICON_PASTE:
+		icon = .Settings
+		paint_icon_id = AUDACITY_SNAP_ICON_PASTE
+	case AUDACITY_ACTION_ICON_DELETE:
+		icon = .Settings
+		paint_icon_id = AUDACITY_SNAP_ICON_DELETE
 	case: return nil
 	}
 	owned_label, clone_error := strings.clone(label, context.allocator)

@@ -125,7 +125,13 @@ void AlicornActionControl::SetPressed(bool pressed)
 void AlicornActionControl::SetAlicornEnabled(bool enabled)
 {
    Enable(enabled);
+}
+
+bool AlicornActionControl::Enable(bool enabled)
+{
+   const auto result = wxWindow::Enable(enabled);
    UpdateView();
+   return result;
 }
 
 void AlicornActionControl::Activate(uint32_t key)
@@ -190,7 +196,7 @@ void AlicornActionControl::OnPaint(wxPaintEvent&)
    std::unique_ptr<wxGraphicsContext> graphics{ wxGraphicsContext::Create(dc) };
    if (!graphics)
       return;
-   AudacityAlicorn::PaintContext context{ graphics.get(), GetFont() };
+   AudacityAlicorn::PaintContext context{ graphics.get(), GetFont(), IsEnabled() };
    if (audacity_alicorn_action_view_paint(
           mView, &AudacityAlicorn::DrawPaintCommand, &context) < 0)
       wxLogWarning(wxT("Alicorn action button could not read its paint list"));

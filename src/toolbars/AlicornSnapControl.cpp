@@ -187,6 +187,30 @@ void DrawPaintCommand(void* rawContext, const AudacitySnapDrawCommand* command)
                width, height);
          }
       }
+      else if (command->icon_id >= AUDACITY_SNAP_ICON_CUT &&
+               command->icon_id <= AUDACITY_SNAP_ICON_DELETE) {
+         teBmps image_id = bmpCut;
+         switch (command->icon_id) {
+         case AUDACITY_SNAP_ICON_CUT:
+            image_id = context->enabled ? bmpCut : bmpCutDisabled;
+            break;
+         case AUDACITY_SNAP_ICON_COPY:
+            image_id = context->enabled ? bmpCopy : bmpCopyDisabled;
+            break;
+         case AUDACITY_SNAP_ICON_PASTE:
+            image_id = context->enabled ? bmpPaste : bmpPasteDisabled;
+            break;
+         case AUDACITY_SNAP_ICON_DELETE:
+            image_id = context->enabled ? bmpDelete : bmpDeleteDisabled;
+            break;
+         }
+         const auto image = theTheme.Image(image_id);
+         if (image.IsOk()) {
+            const wxBitmap bitmap{ image };
+            graphics->DrawBitmap(bitmap, bounds.x, bounds.y,
+               bounds.width, bounds.height);
+         }
+      }
       break;
    case AUDACITY_SNAP_DRAW_TEXT:
       if (command->text_utf8 && command->text_length > 0) {
@@ -307,7 +331,7 @@ void AlicornSnapControl::OnPaint(wxPaintEvent&)
    std::unique_ptr<wxGraphicsContext> graphics{ wxGraphicsContext::Create(dc) };
    if (!graphics)
       return;
-   AudacityAlicorn::PaintContext context{ graphics.get(), GetFont() };
+   AudacityAlicorn::PaintContext context{ graphics.get(), GetFont(), IsEnabled() };
    if (audacity_alicorn_snap_view_paint(
           mView, &AudacityAlicorn::DrawPaintCommand, &context) < 0)
       wxLogWarning(wxT("Alicorn Snap control could not read its paint list"));

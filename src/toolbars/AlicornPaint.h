@@ -11,6 +11,7 @@ namespace AudacityAlicorn {
 struct PaintContext {
    wxGraphicsContext* graphics{};
    wxFont font;
+   bool enabled{ true };
 };
 
 void DrawPaintCommand(void* context, const AudacitySnapDrawCommand* command);

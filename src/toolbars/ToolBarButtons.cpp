@@ -42,7 +42,10 @@ void ToolBarButtons::OnButton(wxCommandEvent & event)
    int id = event.GetId() - mFirstButtonId;
 
    // Be sure the pop-up happens even if there are exceptions, except for buttons which toggle.
-   auto cleanup = finally( [&] { mButtons[id]->InteractionOver(); });
+   auto cleanup = finally([&] {
+      if (auto *button = dynamic_cast<AButton*>(mButtons[id]))
+         button->InteractionOver();
+   });
 
    auto flags = CommandManager::Get(mProject).GetUpdateFlags();
    const CommandContext context( mProject );
@@ -63,8 +66,8 @@ void ToolBarButtons::OnButton(wxCommandEvent & event)
 
 AButton* ToolBarButtons::CreateButton(teBmps eEnabledUp, teBmps eEnabledDown, teBmps eDisabled, int thisButtonId, const TranslatableString& label, bool toggle)
 {
-   auto& button = mButtons[thisButtonId];// ;
-   button = safenew AButton(mParent, thisButtonId + mFirstButtonId);
+   auto button = safenew AButton(mParent, thisButtonId + mFirstButtonId);
+   mButtons[thisButtonId] = button;
    button->SetButtonType(AButton::FrameButton);
    button->SetButtonToggles(toggle);
    button->SetImages(
@@ -81,9 +84,16 @@ AButton* ToolBarButtons::CreateButton(teBmps eEnabledUp, teBmps eEnabledDown, te
    return button;
 }
 
+void ToolBarButtons::RegisterButton(int id, wxWindow *button)
+{
+   if (id >= 0 && static_cast<size_t>(id) < mButtons.size())
+      mButtons[id] = button;
+}
+
 void ToolBarButtons::SetEnabled(int id, bool state)
 {
-   mButtons[id]->SetEnabled(state);
+   if (id >= 0 && static_cast<size_t>(id) < mButtons.size() && mButtons[id])
+      mButtons[id]->Enable(state);
 }
 
 void ToolBarButtons::SetCustomEnableDisableButtonsAction(std::function<void()> action)
@@ -93,12 +103,16 @@ void ToolBarButtons::SetCustomEnableDisableButtonsAction(std::function<void()> a
 
 void ToolBarButtons::PopUp(int id)
 {
-   mButtons[id]->PopUp();
+   if (id >= 0 && static_cast<size_t>(id) < mButtons.size())
+      if (auto *button = dynamic_cast<AButton*>(mButtons[id]))
+         button->PopUp();
 }
 
 void ToolBarButtons::PushDown(int id)
 {
-   mButtons[id]->PushDown();
+   if (id >= 0 && static_cast<size_t>(id) < mButtons.size())
+      if (auto *button = dynamic_cast<AButton*>(mButtons[id]))
+         button->PushDown();
 }
 
 void ToolBarButtons::EnableDisableButtons()
@@ -127,8 +141,9 @@ void ToolBarButtons::ForAllButtons(int Action)
       if ( Action & TBActTooltips ) {
          ComponentInterfaceSymbol command{
             entry.commandName, entry.untranslatedLabel };
-         ToolBar::SetButtonToolTip( mProject,
-            *mButtons[entry.tool], &command, 1u );
+         if (mButtons[entry.tool])
+            ToolBar::SetButtonToolTip( mProject,
+               *mButtons[entry.tool], &command, 1u );
       }
 #endif
       if (cm) {
