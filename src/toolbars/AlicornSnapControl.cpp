@@ -175,6 +175,18 @@ void DrawPaintCommand(void* rawContext, const AudacitySnapDrawCommand* command)
                bounds.width, bounds.height);
          }
       }
+      else if (command->icon_id == AUDACITY_SNAP_ICON_AUDIO_SETUP) {
+         const auto image = theTheme.Image(bmpSetup);
+         if (image.IsOk()) {
+            const wxBitmap bitmap{ image };
+            const auto width = static_cast<double>(image.GetWidth());
+            const auto height = static_cast<double>(image.GetHeight());
+            graphics->DrawBitmap(bitmap,
+               bounds.x + (bounds.width - width) / 2.0,
+               bounds.y + (bounds.height - height) / 2.0,
+               width, height);
+         }
+      }
       break;
    case AUDACITY_SNAP_DRAW_TEXT:
       if (command->text_utf8 && command->text_length > 0) {

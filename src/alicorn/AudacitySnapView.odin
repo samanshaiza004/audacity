@@ -65,8 +65,10 @@ AUDACITY_SNAP_SHAPE_CONNECTED_TAB :: u32(5)
 AUDACITY_SNAP_ICON_NONE :: u32(0)
 AUDACITY_SNAP_ICON_CHECK :: u32(1)
 AUDACITY_SNAP_ICON_SETTINGS :: u32(2)
+AUDACITY_SNAP_ICON_AUDIO_SETUP :: u32(3)
 AUDACITY_ACTION_ICON_NONE :: u32(0)
 AUDACITY_ACTION_ICON_SETTINGS :: u32(1)
+AUDACITY_ACTION_ICON_SETUP :: u32(2)
 
 AUDACITY_SNAP_POINTER_MOVE :: u32(0)
 AUDACITY_SNAP_POINTER_DOWN :: u32(1)
@@ -358,6 +360,7 @@ Action_View :: struct {
 	icon_node_id: alicorn.Node_ID,
 	label: string,
 	icon_id: alicorn.Icon_ID,
+	paint_icon_id: u32,
 	last_enabled: bool,
 	last_pressed: bool,
 	state_initialized: bool,
@@ -382,6 +385,12 @@ action_view_build_description :: proc(view: ^Action_View, enabled, pressed: bool
 		style=root_style,
 	)
 	button_style := alicorn.layout_style(.Row, width=max(0.0, viewport.w-4), height=max(0.0, viewport.h-4), align=.Center, justify=.Center)
+	icon_size := f32(16)
+	show_icon_label := view.paint_icon_id == AUDACITY_SNAP_ICON_AUDIO_SETUP
+	if show_icon_label {
+		button_style = alicorn.layout_style(.Column, width=max(0.0, viewport.w-4), height=max(0.0, viewport.h-4), align=.Center, justify=.Center, gap=1)
+		icon_size = 24
+	}
 	view.icon_node_id = 0
 	if view.icon_id != .None {
 		button_id, button_activated := alicorn.button_begin(
@@ -401,7 +410,10 @@ action_view_build_description :: proc(view: ^Action_View, enabled, pressed: bool
 			if !enabled { states = alicorn.semantic_states_add(states, .Disabled) }
 			if enabled { actions = alicorn.semantic_actions_add(actions, .Press) }
 			_ = alicorn.semantic_description(&ui, .Button, view.label, states=states, actions=actions)
-			view.icon_node_id = alicorn.icon(&ui, view.icon_id, key=alicorn.key_string("audacity-alicorn-action-icon"), size=16, color_role=.Text)
+			view.icon_node_id = alicorn.icon(&ui, view.icon_id, key=alicorn.key_string("audacity-alicorn-action-icon"), size=icon_size, color_role=.Text)
+			if show_icon_label {
+				_ = alicorn.text(&ui, view.label, key=alicorn.key_string("audacity-alicorn-action-label"))
+			}
 			alicorn.button_end(&ui)
 		}
 	} else {
@@ -437,9 +449,15 @@ audacity_alicorn_action_view_create :: proc "c" (
 	label := string(label_utf8)
 	if len(label) == 0 || len(label) > 256 { return nil }
 	icon: alicorn.Icon_ID
+	paint_icon_id := u32(AUDACITY_SNAP_ICON_NONE)
 	switch icon_id {
 	case AUDACITY_ACTION_ICON_NONE: icon = .None
-	case AUDACITY_ACTION_ICON_SETTINGS: icon = .Settings
+	case AUDACITY_ACTION_ICON_SETTINGS:
+		icon = .Settings
+		paint_icon_id = AUDACITY_SNAP_ICON_SETTINGS
+	case AUDACITY_ACTION_ICON_SETUP:
+		icon = .Settings
+		paint_icon_id = AUDACITY_SNAP_ICON_AUDIO_SETUP
 	case: return nil
 	}
 	owned_label, clone_error := strings.clone(label, context.allocator)
@@ -450,6 +468,7 @@ audacity_alicorn_action_view_create :: proc "c" (
 	view.runtime_initialized = true
 	view.label = owned_label
 	view.icon_id = icon
+	view.paint_icon_id = paint_icon_id
 	view.last_enabled = enabled != 0
 	view.last_pressed = pressed != 0
 	view.state_initialized = true
@@ -592,7 +611,7 @@ audacity_alicorn_action_view_paint :: proc "c" (
 		case alicorn.Icon_Paint:
 			if payload.id != .Settings { continue }
 			output = snap_view_command_base(retained, AUDACITY_SNAP_DRAW_ICON)
-			output.icon_id = AUDACITY_SNAP_ICON_SETTINGS
+			output.icon_id = view.paint_icon_id
 			output.fill = snap_color(payload.color)
 		case alicorn.Text_Paint:
 			run, run_ok := alicorn.paint_text_run_resolve(&view.runtime, payload.run)

@@ -1,11 +1,12 @@
 # Alicorn-backed Audacity controls
 
 This directory contains small Alicorn-backed controls hosted by Audacity 3.
-The current opt-in integration replaces the Snap checkbox and the Audio Setup
-toolbar button. Audacity still owns the native window, event loop, accessibility
-bridge, menu, audio-device state, and drawing surface; Alicorn supplies the
-retained control description and paint commands. This adapter does not create
-an SDL window or renderer.
+The current opt-in integration replaces the Snap checkbox, the Audio Setup
+toolbar button, and the Selection Toolbar mode-setup button. Audacity still
+owns the native window, event loop, accessibility bridge, menus, audio-device
+state, selection controls, and drawing surface; Alicorn supplies the retained
+control description and paint commands. This adapter does not create an SDL
+window or renderer.
 
 ## Build
 

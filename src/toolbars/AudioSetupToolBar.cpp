@@ -153,7 +153,7 @@ void AudioSetupToolBar::MakeAudioSetupButton()
 #ifdef AUDACITY_USE_ALICORN_SNAP_UI
    const auto label = XO("Audio Setup").Translation();
    mAlicornAudioSetup = safenew AlicornActionControl(
-      this, ID_AUDIO_SETUP_BUTTON, label);
+      this, ID_AUDIO_SETUP_BUTTON, label, AUDACITY_ACTION_ICON_SETUP);
    mAlicornAudioSetup->SetName(label);
    mAlicornAudioSetup->SetMinSize({ 112, size.y });
    mAlicornAudioSetup->SetMaxSize({ 112, size.y });
